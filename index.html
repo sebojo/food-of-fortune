@@ -393,21 +393,29 @@ function renderLoc(){
   $("#locLabel").textContent = state.loc ? state.loc.label : "Noch kein Standort gewählt";
 }
 function locMsg(t,err){ const m=$("#locMsg"); m.textContent=t||""; m.classList.toggle("err",!!err); }
-function getGPS(){
-  return new Promise((res,rej)=>{
-    if(!("geolocation" in navigator)) return rej(new Error("Dein Browser kann keinen Standort liefern. Gib bitte eine Adresse ein."));
-    if(!window.isSecureContext) return rej(new Error("Der Standort funktioniert nur über https://. Gib bitte eine Adresse ein."));
-    navigator.geolocation.getCurrentPosition(
-      p=>res({lat:p.coords.latitude, lon:p.coords.longitude, label:`Mein Standort (±${Math.round(p.coords.accuracy)} m)`, src:"gps"}),
-      e=>rej(new Error(e.code===1 ? "Standortzugriff wurde abgelehnt. Erlaube ihn in den Browser-Einstellungen oder gib eine Adresse ein." : "Standort konnte nicht bestimmt werden. Versuch es nochmal oder gib eine Adresse ein.")),
-      {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
-  });
+const GPS_HELP_IOS="Auf dem iPhone: Einstellungen → Datenschutz & Sicherheit → Ortungsdienste → einschalten, dann darunter „Safari-Websites“ → „Beim Verwenden der App“. Danach die Seite neu laden. Alternativ oben eine Adresse eingeben.";
+function locate(opts){
+  return new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,opts));
 }
+async function getGPS(){
+  if(!("geolocation" in navigator)) throw new Error("Dieser Browser kann keinen Standort liefern. Öffne den Link in Safari oder gib oben eine Adresse ein.");
+  if(!window.isSecureContext) throw new Error("Der Standort funktioniert nur über https://. Gib bitte oben eine Adresse ein.");
+  let p;
+  try{ p=await locate({enableHighAccuracy:true, timeout:12000, maximumAge:120000}) }
+  catch(e){
+    if(e.code===1) throw new Error("Standortzugriff ist blockiert (Code 1). "+GPS_HELP_IOS);
+    try{ p=await locate({enableHighAccuracy:false, timeout:20000, maximumAge:600000}) }   // zweiter Versuch: WLAN/Mobilfunk statt GPS
+    catch(e2){ throw new Error(`Standort konnte nicht bestimmt werden (Code ${e2.code}: ${e2.message||"unbekannt"}). `+(e2.code===1?GPS_HELP_IOS:"Prüf, ob die Ortungsdienste an sind, oder gib oben eine Adresse ein.")) }
+  }
+  return {lat:p.coords.latitude, lon:p.coords.longitude, label:`Mein Standort (±${Math.round(p.coords.accuracy)} m)`, src:"gps"};
+}
+let lastLocError="";
 async function useGPS(){
   locMsg("Standort wird bestimmt …");
-  try{ state.loc=await getGPS(); save(); renderLoc(); locMsg(""); return true }
-  catch(e){ locMsg(e.message,true); return false }
+  try{ state.loc=await getGPS(); save(); renderLoc(); locMsg(""); lastLocError=""; cache.clear(); return true }
+  catch(e){ lastLocError=e.message; locMsg(e.message,true); return false }
 }
+function locErrHtml(){ return `<div class="card"><p class="msg err" style="margin:0 0 6px">📍 Kein Standort.</p><p class="msg" style="margin:0">${esc(lastLocError||"Wähle oben „Mein Standort“ oder gib eine Adresse ein.")}</p></div>`; }
 $("#gpsBtn").onclick=useGPS;
 $("#addrForm").onsubmit=async e=>{
   e.preventDefault();
@@ -457,17 +465,19 @@ function buildQuery(chains, km, loc){
   return `[out:json][timeout:90];(${body});out center tags;`;
 }
 async function overpass(query){
-  let lastErr;
+  const errs=[];
   for(const url of OVERPASS){
-    const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),95000);
+    const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),60000);
     try{
       const r=await fetch(url,{method:"POST",body:"data="+encodeURIComponent(query),
         headers:{"Content-Type":"application/x-www-form-urlencoded"},signal:ctl.signal});
       if(!r.ok) throw new Error("HTTP "+r.status);
-      return (await r.json()).elements||[];
-    }catch(e){ lastErr=e } finally{ clearTimeout(t) }
+      const j=await r.json();
+      if(j.remark && /runtime error|timed out|out of memory/i.test(j.remark) && !(j.elements||[]).length) throw new Error(j.remark.slice(0,80));
+      return j.elements||[];
+    }catch(e){ errs.push(new URL(url).hostname+": "+(e.name==="AbortError"?"Zeitüberschreitung":e.message)) } finally{ clearTimeout(t) }
   }
-  throw lastErr||new Error("Overpass nicht erreichbar");
+  throw new Error(errs.join(" · "));
 }
 function matchChain(tags, chains){
   const w=tags["brand:wikidata"]; if(w){ const c=chains.find(c=>c.q===w); if(c) return c; }
@@ -520,13 +530,14 @@ function resultCard(f, rank){
 }
 const QUIPS=["Lily checkt die Karte …","Legen… wait for it …","Sucht im Umkreis von {r} …","Fast da, versprochen …"];
 function loadingHtml(r,i){ return `<div class="loading"><div class="spinner"></div><div><b>${QUIPS[i%QUIPS.length].replace("{r}",fmtKm(r))}</b><div class="msg">Radius ${fmtKm(r)}</div></div></div>`; }
-function errHtml(){ return `<div class="card"><p class="msg err" style="margin:0">Die Filialsuche ist gerade nicht erreichbar. Prüf die Internetverbindung und versuch es in einer Minute nochmal.</p></div>`; }
+function errHtml(e){ return `<div class="card"><p class="msg err" style="margin:0 0 6px">Die Filialsuche ist gerade nicht erreichbar. Prüf die Internetverbindung und versuch es in einer Minute nochmal.</p>
+  <p class="msg" style="margin:0;font-size:.75rem">Details: ${esc(e&&e.message||e||"unbekannt")}</p></div>`; }
 
 $("#findBtn").onclick=async()=>{
   const out=$("#nearOut");
   const open=openChains();
   if(!open.length){ out.innerHTML=`<div class="empty">Alles abgehakt, nichts mehr zu suchen! 🏆</div>`; return }
-  if(!await ensureLoc()){ out.innerHTML=""; return }
+  if(!await ensureLoc()){ out.innerHTML=locErrHtml(); return }
   const btn=$("#findBtn"); btn.disabled=true; let i=0;
   try{
     const res=await findNearest(open, state.radiusKm, 3, r=>out.innerHTML=loadingHtml(r,i++));
@@ -534,7 +545,7 @@ $("#findBtn").onclick=async()=>{
       ? res.map((f,k)=>resultCard(f,k+1)).join("") + (res.length<3?`<p class="msg">Nur ${res.length} ${res.length===1?"Kette":"Ketten"} im Umkreis von ${fmtKm(state.radiusKm)}. Vergrößere den Radius für mehr.</p>`:"")
       : `<div class="card"><p style="margin:0 0 10px">Keine offene Kette im Umkreis von ${fmtKm(state.radiusKm)} gefunden.</p><button class="btn primary" id="widen">Mit dem Auto suchen (500 km)</button></div>`;
     const w=$("#widen"); if(w) w.onclick=()=>{state.radiusKm=500; save(); renderRadius(); $("#findBtn").click()};
-  }catch(e){ out.innerHTML=errHtml() } finally{ btn.disabled=false }
+  }catch(e){ out.innerHTML=errHtml(e) } finally{ btn.disabled=false }
 };
 document.addEventListener("click",e=>{
   const b=e.target.closest("[data-done]"); if(!b) return;
@@ -613,7 +624,7 @@ async function onWin(c){
     <div class="row" style="justify-content:center;margin-top:10px"><button class="btn small" id="again">Nochmal drehen</button></div></div>`;
   $("#again").onclick=()=>$("#spinBtn").click();
   const slot=$("#winNear");
-  if(!await ensureLoc()){ slot.innerHTML=`<p class="msg">Wähle oben einen Startpunkt, dann zeige ich die nächste Filiale.</p>
+  if(!await ensureLoc()){ slot.innerHTML=`${locErrHtml()}
     <button class="btn small primary" id="retryWin">Filiale suchen</button>`; $("#retryWin").onclick=()=>onWinSearch(c); return }
   onWinSearch(c);
 }
@@ -625,7 +636,7 @@ async function onWinSearch(c){
     else { slot.innerHTML=`<p class="msg">Keine Filiale im Umkreis von ${fmtKm(state.radiusKm)}.</p>
       ${state.radiusKm<500?`<button class="btn small primary" id="widenWin">Bis 500 km suchen</button>`:""}`;
       const w=$("#widenWin"); if(w) w.onclick=()=>{state.radiusKm=500; save(); renderRadius(); onWinSearch(c)}; }
-  }catch(e){ slot.innerHTML=errHtml() }
+  }catch(e){ slot.innerHTML=errHtml(e) }
 }
 
 /* ---------- Konfetti ---------- */
