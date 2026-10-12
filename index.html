@@ -1,0 +1,650 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Food of Fortune</title>
+<meta name="description" content="Unsere Fast-Food-Liste: abhaken, nächste Filiale finden, Glücksrad drehen.">
+<meta name="theme-color" content="#E8412C">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Food of Fortune">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Shrikhand&family=Figtree:wght@400;600;800&family=DM+Mono:wght@500&display=swap">
+<style>
+/* Layout: one-column phone app, sticky marquee header, fixed bottom tab bar; carnival-diner palette */
+:root{
+  --bg:#FFF3D9; --surface:#FFFFFF; --surface-2:#FFE8B8; --fg:#2A1A12; --muted:#7A5E4B; --line:#EBCF9C;
+  --ketchup:#E8412C; --mustard:#F5B421; --teal:#13867B; --grape:#6B47B8; --sky:#2F7FD1; --pickle:#5E9B2E;
+  --accent:var(--ketchup); --on-accent:#FFFFFF; --ok:#13867B;
+  --shadow:0 3px 0 #D9B57A;
+  --f-display:"Shrikhand","Cooper Black",Georgia,serif;
+  --f-body:"Figtree",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"DM Mono",ui-monospace,Menlo,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#1A1426; --surface:#251D36; --surface-2:#32284A; --fg:#FFF1DC; --muted:#BBA9C9; --line:#43375E;
+  --accent:#FF5A3F; --ok:#2BBFAE; --shadow:0 3px 0 #0E0A16; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --bg:#1A1426; --surface:#251D36; --surface-2:#32284A; --fg:#FFF1DC; --muted:#BBA9C9; --line:#43375E;
+  --accent:#FF5A3F; --ok:#2BBFAE; --shadow:0 3px 0 #0E0A16; color-scheme:dark;}
+
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0}
+body{background:var(--bg);color:var(--fg);font:16px/1.45 var(--f-body);-webkit-tap-highlight-color:transparent;
+  padding-bottom:calc(84px + env(safe-area-inset-bottom,0px));min-height:100vh}
+button,input{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--sky);outline-offset:2px}
+.wrap{max-width:560px;margin:0 auto;padding-inline:16px}
+
+/* Header */
+header.top{position:sticky;top:0;z-index:5;background:var(--accent);color:var(--on-accent);
+  padding-top:env(safe-area-inset-top,0px);
+  background-image:repeating-linear-gradient(90deg,rgba(255,255,255,.0) 0 22px,rgba(255,255,255,.08) 22px 44px)}
+header.top .wrap{display:flex;align-items:center;gap:12px;padding-block:12px}
+.logo{font-family:var(--f-display);font-size:1.7rem;line-height:1;margin:0;letter-spacing:.5px;
+  text-shadow:2px 2px 0 rgba(0,0,0,.18);flex:1;min-width:0}
+.logo small{display:block;font-family:var(--f-body);font-weight:600;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;opacity:.9;text-shadow:none;margin-top:4px}
+.ring{width:52px;height:52px;flex:none;position:relative}
+.ring svg{width:100%;height:100%;transform:rotate(-90deg)}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font:500 .8rem var(--f-mono)}
+.bulbs{height:8px;background:radial-gradient(circle at 6px 4px,var(--mustard) 0 3px,transparent 3.5px) 0 0/22px 8px repeat-x;
+  background-color:var(--accent);animation:bulbs 1.2s steps(2) infinite}
+@keyframes bulbs{to{background-position:11px 0}}
+
+main{padding-block:18px}
+section[data-tab]{display:grid;gap:16px}
+h2{font-family:var(--f-display);font-weight:400;font-size:1.45rem;margin:0;text-wrap:balance}
+.sub{color:var(--muted);margin:2px 0 0;font-size:.95rem}
+.card{background:var(--surface);border:2px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
+.label{font-size:.72rem;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+
+/* Chips & buttons */
+.chips{display:flex;gap:8px;flex-wrap:wrap}
+.chip{border:2px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-weight:600;font-size:.9rem}
+.chip[aria-pressed="true"]{background:var(--fg);color:var(--bg);border-color:var(--fg)}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:0;border-radius:14px;padding:12px 16px;
+  font-weight:800;background:var(--surface-2);color:var(--fg);text-decoration:none;box-shadow:var(--shadow);transition:transform .08s}
+.btn:active{transform:translateY(2px);box-shadow:none}
+.btn.primary{background:var(--accent);color:var(--on-accent)}
+.btn.go{background:var(--teal);color:#fff}
+.btn.small{padding:8px 12px;font-size:.9rem;border-radius:12px}
+.btn[disabled]{opacity:.5;pointer-events:none}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.grow{flex:1;min-width:0}
+
+/* List */
+.list{display:grid;gap:8px;list-style:none;margin:0;padding:0}
+.item{display:flex;align-items:center;gap:12px;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:10px 12px}
+.item .em{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:1.35rem;flex:none}
+.item .nm{font-weight:800;font-size:1.02rem}
+.item .note{font-size:.8rem;color:var(--muted)}
+.item.done .nm{text-decoration:line-through;text-decoration-thickness:3px;text-decoration-color:var(--accent);opacity:.7}
+.item.done .em{filter:grayscale(.8);opacity:.6}
+.check{margin-left:auto;width:40px;height:40px;border-radius:50%;border:3px solid var(--line);background:transparent;flex:none;
+  display:grid;place-items:center;font-size:1.3rem;font-weight:800;color:transparent;transition:all .15s}
+.check[aria-checked="true"]{background:var(--ok);border-color:var(--ok);color:#fff;transform:rotate(-8deg) scale(1.05)}
+.empty{text-align:center;color:var(--muted);padding:24px 8px}
+
+/* Location */
+.loc-now{display:flex;gap:10px;align-items:center}
+.pin{font-size:1.4rem}
+.loc-now .where{font-weight:800}
+.input{width:100%;border:2px solid var(--line);background:var(--bg);border-radius:12px;padding:11px 12px}
+.sugg{display:grid;gap:6px;margin-top:8px}
+.sugg button{text-align:left;border:2px solid var(--line);background:var(--bg);border-radius:12px;padding:8px 10px;font-size:.9rem}
+input[type=range]{width:100%;accent-color:var(--accent);height:28px}
+.km{font:500 1.1rem var(--f-mono);font-variant-numeric:tabular-nums}
+.msg{font-size:.9rem;color:var(--muted)}
+.msg.err{color:var(--accent);font-weight:600}
+
+/* Results */
+.result{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;align-items:start;background:var(--surface);
+  border:2px solid var(--line);border-radius:18px;padding:14px;box-shadow:var(--shadow)}
+.rank{font-family:var(--f-display);font-size:2rem;line-height:1;color:var(--accent);grid-row:span 2;width:40px;text-align:center}
+.result .nm{font-weight:800;font-size:1.1rem}
+.result .addr{color:var(--muted);font-size:.9rem;min-width:0;overflow-wrap:anywhere}
+.result .dist{font:500 .95rem var(--f-mono);font-variant-numeric:tabular-nums;background:var(--surface-2);border-radius:8px;padding:2px 8px;display:inline-block;margin-top:4px}
+.result .acts{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.result .acts .btn{flex:1}
+.loading{display:flex;gap:12px;align-items:center;padding:16px;border-radius:16px;background:var(--surface-2)}
+.spinner{width:28px;height:28px;border-radius:50%;border:4px solid var(--line);border-top-color:var(--accent);animation:spin 0.8s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* Wheel */
+.stage{position:relative;display:grid;justify-items:center;padding-top:6px}
+.wheel-box{position:relative;width:min(86vw,380px);aspect-ratio:1;max-width:100%}
+#wheel{width:100%;height:100%;display:block;filter:drop-shadow(0 6px 0 rgba(0,0,0,.18))}
+.pointer{position:absolute;left:50%;top:-6px;transform:translateX(-50%);width:0;height:0;
+  border-left:16px solid transparent;border-right:16px solid transparent;border-top:30px solid var(--fg);z-index:2;filter:drop-shadow(0 2px 0 rgba(0,0,0,.2))}
+.hub{position:absolute;inset:0;margin:auto;width:22%;height:22%;border-radius:50%;background:var(--fg);color:var(--bg);
+  border:5px solid var(--mustard);font-family:var(--f-display);display:grid;place-items:center;font-size:clamp(.8rem,3.4vw,1.1rem);z-index:2}
+.lily-row{display:flex;align-items:flex-end;gap:6px;width:100%;justify-content:center;margin-top:-6px}
+.lily{width:118px;flex:none}
+.bubble{position:relative;background:var(--surface);border:2px solid var(--line);border-radius:16px;padding:10px 12px;font-weight:600;
+  max-width:220px;margin-bottom:70px;box-shadow:var(--shadow);min-width:0}
+.bubble::after{content:"";position:absolute;right:-12px;bottom:14px;border:8px solid transparent;border-left:12px solid var(--line)}
+.lily .arm{transform-origin:112px 140px;transition:transform .3s}
+.lily.spinning .arm{animation:wave .28s ease-in-out infinite alternate}
+.lily.spinning .mouth-c{display:none}.lily .mouth-o{display:none}.lily.spinning .mouth-o,.lily.cheer .mouth-o{display:block}
+.lily.cheer .mouth-c{display:none}
+.lily.cheer{animation:jump .45s ease-out 3}
+.lily .blink{animation:blink 4s infinite;transform-origin:center 84px}
+@keyframes wave{from{transform:rotate(-20deg)}to{transform:rotate(-70deg)}}
+@keyframes jump{50%{transform:translateY(-18px)}}
+@keyframes blink{0%,96%,100%{transform:scaleY(1)}98%{transform:scaleY(.1)}}
+.spin-btn{font-family:var(--f-display);font-weight:400;font-size:1.35rem;padding:14px 28px;letter-spacing:.5px}
+.winner{text-align:center}
+.winner .big{font-family:var(--f-display);font-size:2rem;line-height:1.1;margin:6px 0}
+.confetti{position:fixed;top:-10px;width:10px;height:14px;z-index:50;pointer-events:none;animation:fall linear forwards}
+@keyframes fall{to{transform:translateY(105vh) rotate(720deg)}}
+
+/* Tab bar */
+nav.tabs{position:fixed;left:0;right:0;bottom:0;z-index:6;background:var(--surface);border-top:2px solid var(--line);
+  padding-bottom:env(safe-area-inset-bottom,0px)}
+nav.tabs .wrap{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;padding-block:6px}
+nav.tabs button{border:0;background:transparent;border-radius:14px;padding:6px 4px;display:grid;justify-items:center;gap:2px;font-weight:800;font-size:.78rem;color:var(--muted)}
+nav.tabs button span{font-size:1.4rem;line-height:1}
+nav.tabs button[aria-selected="true"]{background:var(--surface-2);color:var(--fg)}
+.foot{font-size:.75rem;color:var(--muted);text-align:center;padding-top:8px}
+.foot a{color:inherit}
+.confirm{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01ms!important;animation-iteration-count:1!important;transition:none!important}}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <h1 class="logo">Food of Fortune<small>California Fast-Food-Challenge</small></h1>
+    <div class="ring" aria-label="Fortschritt">
+      <svg viewBox="0 0 36 36"><circle cx="18" cy="18" r="15" fill="none" stroke="rgba(255,255,255,.3)" stroke-width="5"/>
+        <circle id="ringArc" cx="18" cy="18" r="15" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="0 100" pathLength="100"/></svg>
+      <b id="ringTxt">0/18</b>
+    </div>
+  </div>
+  <div class="bulbs" aria-hidden="true"></div>
+</header>
+
+<main class="wrap">
+  <!-- LISTE -->
+  <section data-tab="list">
+    <div>
+      <h2 id="listHead">Unsere Liste</h2>
+      <p class="sub" id="listSub"></p>
+    </div>
+    <div class="chips" role="group" aria-label="Filter">
+      <button class="chip" data-filter="all">Alle</button>
+      <button class="chip" data-filter="open">Offen</button>
+      <button class="chip" data-filter="done">Erledigt</button>
+    </div>
+    <ul class="list" id="list"></ul>
+    <div class="confirm" id="resetBox">
+      <button class="btn small" id="resetBtn">Liste zurücksetzen</button>
+    </div>
+  </section>
+
+  <!-- STANDORT (geteilt von "In der Nähe" und "Glücksrad") -->
+  <div class="card" id="locCard" hidden>
+    <div class="loc-now">
+      <span class="pin" aria-hidden="true">📍</span>
+      <div class="grow"><div class="label">Startpunkt</div><div class="where" id="locLabel">Noch kein Standort gewählt</div></div>
+      <button class="btn small primary" id="gpsBtn">Mein Standort</button>
+    </div>
+    <form id="addrForm" class="row" style="margin-top:10px">
+      <label class="grow"><span class="label" style="display:block;margin-bottom:4px">… oder Adresse eingeben</span>
+        <input class="input" id="addrInput" type="search" placeholder="z. B. Santa Monica Pier" autocomplete="street-address" enterkeyhint="search"></label>
+      <button class="btn small" type="submit" style="align-self:flex-end">Suchen</button>
+    </form>
+    <div class="sugg" id="sugg"></div>
+    <div style="margin-top:14px">
+      <div class="row"><span class="label grow">Suchradius</span><span class="km" id="kmTxt"></span></div>
+      <input type="range" id="radius" min="0" max="1000" step="1" aria-label="Suchradius">
+      <div class="chips" role="group" aria-label="Fortbewegung">
+        <button class="chip" data-preset="2">🚶 Zu Fuß · 2 km</button>
+        <button class="chip" data-preset="5">🚌 ÖPNV · 5 km</button>
+        <button class="chip" data-preset="500">🚗 Auto · 500 km</button>
+      </div>
+    </div>
+    <p class="msg" id="locMsg" role="status"></p>
+  </div>
+
+  <!-- IN DER NÄHE -->
+  <section data-tab="near" hidden>
+    <div>
+      <h2>Nächste Gelegenheit</h2>
+      <p class="sub">Die 3 nächsten Ketten, die noch offen sind, jeweils mit der nächsten Filiale.</p>
+    </div>
+    <button class="btn primary" id="findBtn">Top 3 suchen</button>
+    <div id="nearOut" class="list"></div>
+  </section>
+
+  <!-- GLÜCKSRAD -->
+  <section data-tab="wheel" hidden>
+    <div>
+      <h2>Glücksrad</h2>
+      <p class="sub">Lily dreht, das Schicksal entscheidet. Nur Ketten, die noch offen sind.</p>
+    </div>
+    <div class="stage">
+      <div class="wheel-box">
+        <div class="pointer" aria-hidden="true"></div>
+        <canvas id="wheel" width="760" height="760" aria-label="Glücksrad"></canvas>
+        <div class="hub" aria-hidden="true">FoF</div>
+      </div>
+      <div class="lily-row">
+        <div class="bubble" id="bubble" aria-live="polite">Hi! Dreh das Rad, ich hab' ein gutes Gefühl!</div>
+        <svg class="lily" id="lily" viewBox="0 0 160 220" aria-hidden="true">
+          <!-- body -->
+          <path d="M46 214 L54 140 Q80 128 106 140 L114 214 Z" fill="#2E8B6E"/>
+          <path d="M66 136 L80 160 L94 136 Q80 130 66 136Z" fill="#F7C9A8"/>
+          <path d="M70 140 L80 156 L90 140" fill="none" stroke="#F5B421" stroke-width="3"/>
+          <!-- left arm -->
+          <path d="M54 146 Q38 170 44 196" stroke="#2E8B6E" stroke-width="12" stroke-linecap="round" fill="none"/>
+          <circle cx="44" cy="198" r="7" fill="#F7C9A8"/>
+          <!-- right arm (waves) -->
+          <g class="arm"><path d="M108 146 Q126 166 122 192" stroke="#2E8B6E" stroke-width="12" stroke-linecap="round" fill="none"/>
+            <circle cx="122" cy="194" r="7" fill="#F7C9A8"/></g>
+          <!-- hair back -->
+          <path d="M34 92 Q28 36 80 34 Q132 36 126 92 L128 116 Q114 124 104 112 L56 112 Q46 124 32 116 Z" fill="#C2412B"/>
+          <!-- neck + head -->
+          <rect x="72" y="108" width="16" height="22" rx="6" fill="#EDB993"/>
+          <ellipse cx="80" cy="84" rx="34" ry="36" fill="#F7C9A8"/>
+          <!-- bangs -->
+          <path d="M44 78 C42 48 60 40 80 40 C100 40 118 48 116 78 C108 66 98 62 90 66 C84 58 72 58 66 66 C58 62 50 66 44 78Z" fill="#D04A31"/>
+          <path d="M60 50 Q72 44 84 46" stroke="#E86A4C" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <!-- eyes -->
+          <g class="blink"><ellipse cx="68" cy="86" rx="4" ry="5.5" fill="#2A1A12"/><ellipse cx="92" cy="86" rx="4" ry="5.5" fill="#2A1A12"/>
+            <circle cx="69.5" cy="84" r="1.4" fill="#fff"/><circle cx="93.5" cy="84" r="1.4" fill="#fff"/></g>
+          <path d="M61 76 Q68 72 74 75 M86 75 Q92 72 99 76" stroke="#9C3322" stroke-width="2.4" fill="none" stroke-linecap="round"/>
+          <circle cx="60" cy="98" r="6" fill="#F28B82" opacity=".55"/><circle cx="100" cy="98" r="6" fill="#F28B82" opacity=".55"/>
+          <path d="M78 92 Q80 96 82 92" stroke="#D9967A" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <path class="mouth-c" d="M70 102 Q80 112 90 102" stroke="#9C3322" stroke-width="3" fill="none" stroke-linecap="round"/>
+          <path class="mouth-o" d="M70 101 Q80 118 90 101 Z" fill="#8E2A1C"/>
+        </svg>
+      </div>
+    </div>
+    <div class="row" style="justify-content:center">
+      <button class="btn primary spin-btn" id="spinBtn">Drehen!</button>
+    </div>
+    <div id="wheelOut" class="list"></div>
+  </section>
+
+  <p class="foot">Filialdaten © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a>-Mitwirkende · Entfernungen in Luftlinie</p>
+</main>
+
+<nav class="tabs" role="tablist">
+  <div class="wrap">
+    <button role="tab" data-go="list"><span>✅</span>Liste</button>
+    <button role="tab" data-go="near"><span>📍</span>In der Nähe</button>
+    <button role="tab" data-go="wheel"><span>🎡</span>Glücksrad</button>
+  </div>
+</nav>
+
+<script>
+"use strict";
+/* ---------- Data ---------- */
+// brand:wikidata IDs checked against the OSM name-suggestion-index
+const CHAINS = [
+  {id:"jack",    name:"Jack in the Box",  q:"Q1538507", m:"Jack in the Box", em:"📦"},
+  {id:"innout",  name:"In-N-Out Burger",  q:"Q1205312", m:"In-N-Out",       em:"🌴"},
+  {id:"shake",   name:"Shake Shack",      q:"Q1058722", m:"Shake Shack",    em:"🥤"},
+  {id:"mcd",     name:"McDonald's",       q:"Q38076",   m:"McDonald",       em:"🍟"},
+  {id:"pollo",   name:"El Pollo Loco",    q:"Q2353849", m:"El Pollo Loco",  em:"🐔"},
+  {id:"hut",     name:"Pizza Hut",        q:"Q191615",  m:"Pizza Hut",      em:"🍕"},
+  {id:"canes",   name:"Raising Cane's",   q:"Q7285144", m:"Raising Cane",   em:"🐕"},
+  {id:"sbux",    name:"Starbucks",        q:"Q37158",   m:"Starbucks",      em:"☕"},
+  {id:"dennys",  name:"Denny's",          q:"Q1189695", m:"Denny",          em:"🥞"},
+  {id:"dq",      name:"Dairy Queen",      q:"Q1141226", m:"Dairy Queen",    em:"🍦"},
+  {id:"castle",  name:"White Castle",     q:"Q1244034", m:"White Castle",   em:"🏰", note:"Keine Filiale in Kalifornien, die nächsten sind in Las Vegas & Arizona"},
+  {id:"krispy",  name:"Krispy Kreme",     q:"Q1192805", m:"Krispy Kreme",   em:"🍩"},
+  {id:"wendys",  name:"Wendy's",          q:"Q550258",  m:"Wendy",          em:"🍔"},
+  {id:"cfa",     name:"Chick-fil-A",      q:"Q491516",  m:"Chick-fil-A",    em:"🐄"},
+  {id:"fat",     name:"Fatburger",        q:"Q1397976", m:"Fatburger",      em:"🍔"},
+  {id:"jolli",   name:"Jollibee",         q:"Q37614",   m:"Jollibee",       em:"🐝"},
+  {id:"popeyes", name:"Popeyes",          q:"Q1330910", m:"Popeyes",        em:"🍗"},
+  {id:"chipotle",name:"Chipotle",         q:"Q465751",  m:"Chipotle",       em:"🌯"},
+];
+const BYID = Object.fromEntries(CHAINS.map(c=>[c.id,c]));
+const PALETTE = [["--ketchup","#fff"],["--mustard","#2A1A12"],["--teal","#fff"],["--grape","#fff"],["--sky","#fff"],["--pickle","#fff"]];
+const OVERPASS = ["https://overpass-api.de/api/interpreter","https://overpass.kumi.systems/api/interpreter","https://maps.mail.ru/osm/tools/overpass/api/interpreter"];
+
+/* ---------- State ---------- */
+const KEY="food-of-fortune.v1";
+const state = Object.assign({visited:{}, loc:null, radiusKm:5, tab:"list", filter:"all"}, load());
+function load(){ try{ return JSON.parse(localStorage.getItem(KEY))||{} }catch(e){ return {} } }
+function save(){ try{ localStorage.setItem(KEY, JSON.stringify(state)) }catch(e){} }
+const isDone = id => !!state.visited[id];
+const openChains = () => CHAINS.filter(c=>!isDone(c.id));
+
+const $ = s => document.querySelector(s);
+const esc = s => String(s).replace(/[&<>"']/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+
+/* ---------- Tabs ---------- */
+function setTab(t){
+  state.tab=t; save();
+  document.querySelectorAll("section[data-tab]").forEach(s=>s.hidden = s.dataset.tab!==t);
+  document.querySelectorAll("nav.tabs button").forEach(b=>b.setAttribute("aria-selected", b.dataset.go===t));
+  const lc=$("#locCard"); lc.hidden = t==="list";
+  if(t!=="list") $("section[data-tab='"+t+"']").before(lc);
+  if(t==="wheel") drawWheel();
+  window.scrollTo({top:0});
+}
+document.querySelectorAll("nav.tabs button").forEach(b=>b.onclick=()=>setTab(b.dataset.go));
+
+/* ---------- Liste ---------- */
+function renderProgress(){
+  const n=CHAINS.filter(c=>isDone(c.id)).length, t=CHAINS.length;
+  $("#ringArc").setAttribute("stroke-dasharray", (n/t*100)+" 100");
+  $("#ringTxt").textContent=n+"/"+t;
+  $("#listSub").textContent = n===t ? "Alles geschafft! Legen… wait for it… dary! 🏆" : `${n} von ${t} besucht, noch ${t-n} offen.`;
+}
+function renderList(){
+  document.querySelectorAll("[data-filter]").forEach(b=>b.setAttribute("aria-pressed", b.dataset.filter===state.filter));
+  const items = CHAINS.map((c,i)=>({c,i})).filter(({c})=> state.filter==="all" || (state.filter==="done")===isDone(c.id));
+  $("#list").innerHTML = items.length ? items.map(({c,i})=>{
+    const [bg,fg]=PALETTE[i%PALETTE.length];
+    return `<li class="item ${isDone(c.id)?"done":""}">
+      <span class="em" style="background:var(${bg});color:${fg}">${c.em}</span>
+      <div class="grow"><div class="nm">${esc(c.name)}</div>${c.note?`<div class="note">${esc(c.note)}</div>`:""}</div>
+      <button class="check" role="checkbox" aria-checked="${isDone(c.id)}" aria-label="${esc(c.name)} besucht" data-id="${c.id}">✓</button></li>`;
+  }).join("") : `<li class="empty">${state.filter==="done"?"Noch nichts abgehakt. Ab ins Auto! 🚗":"Nichts mehr offen. Ihr seid Legenden! 🏆"}</li>`;
+  renderProgress();
+}
+function toggle(id, val){
+  if(val ?? !isDone(id)) state.visited[id]=new Date().toISOString().slice(0,10); else delete state.visited[id];
+  save(); renderList(); drawWheel();
+}
+$("#list").addEventListener("click",e=>{const b=e.target.closest(".check"); if(b) toggle(b.dataset.id)});
+document.querySelectorAll("[data-filter]").forEach(b=>b.onclick=()=>{state.filter=b.dataset.filter; save(); renderList()});
+function bindReset(){
+  $("#resetBtn").onclick=()=>{
+    $("#resetBox").innerHTML=`<span class="msg">Wirklich alle Häkchen entfernen?</span>
+      <button class="btn small primary" id="yesReset">Ja, zurücksetzen</button><button class="btn small" id="noReset">Abbrechen</button>`;
+    $("#yesReset").onclick=()=>{state.visited={}; save(); restoreReset(); renderList(); drawWheel()};
+    $("#noReset").onclick=restoreReset;
+  };
+}
+function restoreReset(){ $("#resetBox").innerHTML=`<button class="btn small" id="resetBtn">Liste zurücksetzen</button>`; bindReset(); }
+
+/* ---------- Standort & Radius ---------- */
+const sliderToKm = v => Math.max(1, Math.round(Math.pow(500, v/1000)*10)/10);   // 1 … 500 km, logarithmisch
+const kmToSlider = km => Math.round(Math.log(Math.max(1,km))/Math.log(500)*1000);
+const fmtKm = km => km<10 ? km.toFixed(1).replace(".",",")+" km" : Math.round(km)+" km";
+const fmtMi = km => { const mi=km*0.621371; return (mi<10? mi.toFixed(1).replace(".",","): Math.round(mi))+" mi"; };
+const travelMode = () => state.radiusKm<=2 ? "walking" : state.radiusKm<=5 ? "transit" : "driving";
+function renderRadius(){
+  $("#radius").value=kmToSlider(state.radiusKm);
+  $("#kmTxt").textContent = fmtKm(state.radiusKm)+" · "+fmtMi(state.radiusKm);
+  document.querySelectorAll("[data-preset]").forEach(b=>b.setAttribute("aria-pressed", Number(b.dataset.preset)===state.radiusKm));
+}
+$("#radius").oninput=e=>{ state.radiusKm=sliderToKm(+e.target.value); save(); renderRadius(); };
+document.querySelectorAll("[data-preset]").forEach(b=>b.onclick=()=>{ state.radiusKm=+b.dataset.preset; save(); renderRadius(); });
+
+function renderLoc(){
+  $("#locLabel").textContent = state.loc ? state.loc.label : "Noch kein Standort gewählt";
+}
+function locMsg(t,err){ const m=$("#locMsg"); m.textContent=t||""; m.classList.toggle("err",!!err); }
+function getGPS(){
+  return new Promise((res,rej)=>{
+    if(!("geolocation" in navigator)) return rej(new Error("Dein Browser kann keinen Standort liefern. Gib bitte eine Adresse ein."));
+    if(!window.isSecureContext) return rej(new Error("Der Standort funktioniert nur über https://. Gib bitte eine Adresse ein."));
+    navigator.geolocation.getCurrentPosition(
+      p=>res({lat:p.coords.latitude, lon:p.coords.longitude, label:`Mein Standort (±${Math.round(p.coords.accuracy)} m)`, src:"gps"}),
+      e=>rej(new Error(e.code===1 ? "Standortzugriff wurde abgelehnt. Erlaube ihn in den Browser-Einstellungen oder gib eine Adresse ein." : "Standort konnte nicht bestimmt werden. Versuch es nochmal oder gib eine Adresse ein.")),
+      {enableHighAccuracy:true, timeout:15000, maximumAge:60000});
+  });
+}
+async function useGPS(){
+  locMsg("Standort wird bestimmt …");
+  try{ state.loc=await getGPS(); save(); renderLoc(); locMsg(""); return true }
+  catch(e){ locMsg(e.message,true); return false }
+}
+$("#gpsBtn").onclick=useGPS;
+$("#addrForm").onsubmit=async e=>{
+  e.preventDefault();
+  const q=$("#addrInput").value.trim(); if(!q) return;
+  locMsg("Adresse wird gesucht …"); $("#sugg").innerHTML="";
+  try{
+    const hits=await geocode(q);
+    if(!hits.length){ locMsg("Keine Adresse gefunden. Versuch es mit Ort oder Postleitzahl.",true); return }
+    locMsg("Wähle den passenden Treffer:");
+    $("#sugg").innerHTML=hits.map((h,i)=>`<button type="button" data-i="${i}">${esc(h.label)}</button>`).join("");
+    $("#sugg").onclick=ev=>{ const b=ev.target.closest("button"); if(!b) return;
+      const h=hits[+b.dataset.i]; state.loc={lat:h.lat, lon:h.lon, label:h.label, src:"addr"}; save();
+      renderLoc(); $("#sugg").innerHTML=""; locMsg(""); };
+  }catch(err){ locMsg("Adresssuche gerade nicht erreichbar. Prüf die Internetverbindung.",true) }
+};
+async function geocode(q){
+  try{
+    const r=await fetch("https://nominatim.openstreetmap.org/search?format=jsonv2&limit=5&countrycodes=us&accept-language=de&q="+encodeURIComponent(q));
+    if(!r.ok) throw 0;
+    return (await r.json()).map(h=>({lat:+h.lat, lon:+h.lon, label:h.display_name.split(", ").slice(0,4).join(", ")}));
+  }catch(e){
+    const r=await fetch("https://photon.komoot.io/api/?limit=5&lat=36.7&lon=-119.4&q="+encodeURIComponent(q));
+    const j=await r.json();
+    return j.features.map(f=>{const p=f.properties; return {lat:f.geometry.coordinates[1], lon:f.geometry.coordinates[0],
+      label:[p.name, [p.housenumber,p.street].filter(Boolean).join(" "), p.city, p.state].filter(Boolean).join(", ")}});
+  }
+}
+async function ensureLoc(){
+  if(state.loc) return true;
+  return await useGPS();
+}
+
+/* ---------- Filialsuche (OpenStreetMap / Overpass) ---------- */
+function haversine(a,b){
+  const R=6371, r=Math.PI/180, dLat=(b.lat-a.lat)*r, dLon=(b.lon-a.lon)*r;
+  const h=Math.sin(dLat/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLon/2)**2;
+  return 2*R*Math.asin(Math.sqrt(h));
+}
+function buildQuery(chains, km, loc){
+  const around=`(around:${Math.round(km*1000)},${loc.lat.toFixed(5)},${loc.lon.toFixed(5)})`;
+  const qs=chains.map(c=>c.q).join("|");
+  let body=`nwr["brand:wikidata"~"^(${qs})$"]${around};`;
+  if(km<=100){ // Fallback für Filialen ohne Marken-Tag: Namenssuche (nur bei kleinerem Radius, sonst zu langsam)
+    const ns=chains.map(c=>c.m.replace(/[-]/g,".")).join("|");
+    body+=`nwr["amenity"~"^(fast_food|restaurant|cafe|ice_cream)$"]["name"~"^(${ns})",i]${around};`;
+  }
+  return `[out:json][timeout:90];(${body});out center tags;`;
+}
+async function overpass(query){
+  let lastErr;
+  for(const url of OVERPASS){
+    const ctl=new AbortController(); const t=setTimeout(()=>ctl.abort(),95000);
+    try{
+      const r=await fetch(url,{method:"POST",body:"data="+encodeURIComponent(query),
+        headers:{"Content-Type":"application/x-www-form-urlencoded"},signal:ctl.signal});
+      if(!r.ok) throw new Error("HTTP "+r.status);
+      return (await r.json()).elements||[];
+    }catch(e){ lastErr=e } finally{ clearTimeout(t) }
+  }
+  throw lastErr||new Error("Overpass nicht erreichbar");
+}
+function matchChain(tags, chains){
+  const w=tags["brand:wikidata"]; if(w){ const c=chains.find(c=>c.q===w); if(c) return c; }
+  const n=(tags.brand||tags.name||"").toLowerCase();
+  return chains.find(c=>n.startsWith(c.m.toLowerCase()));
+}
+function addrOf(t){
+  const street=[t["addr:housenumber"],t["addr:street"]].filter(Boolean).join(" ");
+  return [street, t["addr:city"]].filter(Boolean).join(", ");
+}
+const cache=new Map();
+/** Sucht in wachsenden Ringen, bis `need` Ketten gefunden sind. Ergebnis ist exakt: Was in Radius r gefunden wird, ist näher als alles, was fehlt. */
+async function findNearest(chains, maxKm, need, onStep){
+  const loc=state.loc;
+  const key=[loc.lat.toFixed(4),loc.lon.toFixed(4),maxKm,need,chains.map(c=>c.id).join()].join("|");
+  if(cache.has(key)) return cache.get(key);
+  const steps=[2,5,10,25,50,100,200,350,500].filter(s=>s<maxKm).concat([maxKm]);
+  const found={}; let remaining=[...chains];
+  for(const r of steps){
+    onStep&&onStep(r);
+    const els=await overpass(buildQuery(remaining,r,loc));
+    for(const el of els){
+      const p={lat:el.lat??el.center?.lat, lon:el.lon??el.center?.lon}; if(p.lat==null) continue;
+      const c=matchChain(el.tags||{}, remaining); if(!c) continue;
+      const d=haversine(loc,p); if(d>r) continue;
+      if(!found[c.id] || d<found[c.id].dist) found[c.id]={chain:c, dist:d, ...p, addr:addrOf(el.tags||{})};
+    }
+    remaining=remaining.filter(c=>!found[c.id]);
+    if(Object.keys(found).length>=need || !remaining.length) break;
+  }
+  const out=Object.values(found).sort((a,b)=>a.dist-b.dist).slice(0,need);
+  cache.set(key,out); return out;
+}
+function mapsUrl(f){
+  const p=new URLSearchParams({api:"1", destination:`${f.lat},${f.lon}`, travelmode:travelMode()});
+  if(state.loc.src==="addr") p.set("origin",`${state.loc.lat},${state.loc.lon}`);
+  return "https://www.google.com/maps/dir/?"+p;
+}
+function resultCard(f, rank){
+  const c=f.chain;
+  return `<div class="result">
+    <div class="rank">${rank??c.em}</div>
+    <div class="nm">${rank?c.em+" ":""}${esc(c.name)}</div>
+    <div><div class="addr">${f.addr?esc(f.addr):"Adresse siehe Google Maps"}</div>
+      <span class="dist">${fmtKm(f.dist)} · ${fmtMi(f.dist)}</span></div>
+    <div class="acts">
+      <a class="btn go" href="${mapsUrl(f)}" target="_blank" rel="noopener">🧭 Navigation starten</a>
+      <button class="btn" data-done="${c.id}">✓ Waren wir!</button>
+    </div></div>`;
+}
+const QUIPS=["Lily checkt die Karte …","Legen… wait for it …","Sucht im Umkreis von {r} …","Fast da, versprochen …"];
+function loadingHtml(r,i){ return `<div class="loading"><div class="spinner"></div><div><b>${QUIPS[i%QUIPS.length].replace("{r}",fmtKm(r))}</b><div class="msg">Radius ${fmtKm(r)}</div></div></div>`; }
+function errHtml(){ return `<div class="card"><p class="msg err" style="margin:0">Die Filialsuche ist gerade nicht erreichbar. Prüf die Internetverbindung und versuch es in einer Minute nochmal.</p></div>`; }
+
+$("#findBtn").onclick=async()=>{
+  const out=$("#nearOut");
+  const open=openChains();
+  if(!open.length){ out.innerHTML=`<div class="empty">Alles abgehakt, nichts mehr zu suchen! 🏆</div>`; return }
+  if(!await ensureLoc()){ out.innerHTML=""; return }
+  const btn=$("#findBtn"); btn.disabled=true; let i=0;
+  try{
+    const res=await findNearest(open, state.radiusKm, 3, r=>out.innerHTML=loadingHtml(r,i++));
+    out.innerHTML = res.length
+      ? res.map((f,k)=>resultCard(f,k+1)).join("") + (res.length<3?`<p class="msg">Nur ${res.length} ${res.length===1?"Kette":"Ketten"} im Umkreis von ${fmtKm(state.radiusKm)}. Vergrößere den Radius für mehr.</p>`:"")
+      : `<div class="card"><p style="margin:0 0 10px">Keine offene Kette im Umkreis von ${fmtKm(state.radiusKm)} gefunden.</p><button class="btn primary" id="widen">Mit dem Auto suchen (500 km)</button></div>`;
+    const w=$("#widen"); if(w) w.onclick=()=>{state.radiusKm=500; save(); renderRadius(); $("#findBtn").click()};
+  }catch(e){ out.innerHTML=errHtml() } finally{ btn.disabled=false }
+};
+document.addEventListener("click",e=>{
+  const b=e.target.closest("[data-done]"); if(!b) return;
+  toggle(b.dataset.done,true);
+  b.textContent="✓ Abgehakt!"; b.disabled=true; burst(40);
+});
+
+/* ---------- Glücksrad ---------- */
+const cv=$("#wheel"), ctx=cv.getContext("2d");
+let rot=0, spinning=false, wheelChains=[];
+function drawWheel(){
+  wheelChains=openChains();
+  const W=cv.width, R=W/2-10, cx=W/2, cy=W/2, n=wheelChains.length;
+  ctx.clearRect(0,0,W,W);
+  ctx.beginPath(); ctx.arc(cx,cy,R+8,0,Math.PI*2); ctx.fillStyle=css("--fg"); ctx.fill();
+  if(!n){ ctx.beginPath(); ctx.arc(cx,cy,R,0,Math.PI*2); ctx.fillStyle=css("--mustard"); ctx.fill();
+    ctx.fillStyle="#2A1A12"; ctx.font=`64px ${css("--f-display")}`; ctx.textAlign="center"; ctx.fillText("Geschafft!",cx,cy-80); return; }
+  const seg=Math.PI*2/n;
+  for(let i=0;i<n;i++){
+    let pi=i%PALETTE.length; if(i===n-1 && n>1 && pi===0) pi=2;
+    const [bg,fg]=PALETTE[pi];
+    const a0=rot+i*seg-Math.PI/2, a1=a0+seg;
+    ctx.beginPath(); ctx.moveTo(cx,cy); ctx.arc(cx,cy,R,a0,a1); ctx.closePath();
+    ctx.fillStyle=css(bg); ctx.fill(); ctx.lineWidth=3; ctx.strokeStyle="rgba(0,0,0,.18)"; ctx.stroke();
+    ctx.save(); ctx.translate(cx,cy); ctx.rotate(a0+seg/2);
+    ctx.textAlign="right"; ctx.textBaseline="middle"; ctx.fillStyle=fg;
+    const fs=Math.max(20,Math.min(36, 560/n+6));
+    ctx.font=`800 ${fs}px ${css("--f-body")}`;
+    let label=wheelChains[i].name; const maxW=R*0.58;
+    while(ctx.measureText(label).width>maxW && label.length>4) label=label.slice(0,-2)+"…";
+    ctx.fillText(label, R-26, 0);
+    ctx.font=`${fs+4}px sans-serif`; ctx.textAlign="left"; ctx.fillText(wheelChains[i].em, R*0.24, 0);
+    ctx.restore();
+  }
+  // Glühbirnen am Rand
+  for(let k=0;k<36;k++){ const a=k/36*Math.PI*2; ctx.beginPath(); ctx.arc(cx+Math.cos(a)*(R+1),cy+Math.sin(a)*(R+1),5,0,Math.PI*2);
+    ctx.fillStyle=k%2?css("--mustard"):"#fff"; ctx.fill(); }
+}
+function indexAtPointer(){ const n=wheelChains.length, seg=Math.PI*2/n; const a=((-rot)%(Math.PI*2)+Math.PI*2)%(Math.PI*2); return Math.floor(a/seg)%n; }
+let audio;
+function tick(){ try{ audio=audio||new (window.AudioContext||window.webkitAudioContext)();
+  const o=audio.createOscillator(), g=audio.createGain(); o.frequency.value=900; o.type="square";
+  g.gain.setValueAtTime(.04,audio.currentTime); g.gain.exponentialRampToValueAtTime(.0001,audio.currentTime+.04);
+  o.connect(g).connect(audio.destination); o.start(); o.stop(audio.currentTime+.05);}catch(e){} }
+const lily=$("#lily"), bubble=$("#bubble");
+const SPIN_LINES=["Ooh, Abenteuer!","Dreh dich, dreh dich!","Ich hab' ein gutes Gefühl!","Wait for it …"];
+const WIN_LINES=["Heute gibt's {n}! 🎉","Das Schicksal hat gesprochen: {n}!","{n}? Ich liebe es!","Suit up! Ab zu {n}!"];
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+
+$("#spinBtn").onclick=()=>{
+  if(spinning) return;
+  if(!wheelChains.length){ bubble.textContent="Alles abgehakt! Ihr seid Legenden! 🏆"; return }
+  spinning=true; $("#spinBtn").disabled=true; $("#wheelOut").innerHTML="";
+  lily.classList.remove("cheer"); lily.classList.add("spinning"); bubble.textContent=pick(SPIN_LINES);
+  const n=wheelChains.length, seg=Math.PI*2/n, k=Math.floor(Math.random()*n);
+  const target=((Math.PI*2 - (k+0.2+Math.random()*0.6)*seg)%(Math.PI*2)+Math.PI*2)%(Math.PI*2);
+  const start=rot, delta=((target-start%(Math.PI*2))+Math.PI*4)%(Math.PI*2);
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const end=start+(reduce?0:6*Math.PI*2)+delta, dur=reduce?400:5200, t0=performance.now();
+  let lastSeg=Math.floor(start/seg);
+  (function frame(now){
+    const t=Math.min(1,(now-t0)/dur), e=1-Math.pow(1-t,4);
+    rot=start+(end-start)*e; drawWheel();
+    const s=Math.floor(rot/seg); if(s!==lastSeg){ lastSeg=s; tick(); }
+    if(t<1) return requestAnimationFrame(frame);
+    rot=rot%(Math.PI*2); spinning=false; $("#spinBtn").disabled=false;
+    onWin(wheelChains[indexAtPointer()]);
+  })(t0);
+};
+async function onWin(c){
+  lily.classList.remove("spinning"); void lily.offsetWidth; lily.classList.add("cheer");
+  bubble.textContent=pick(WIN_LINES).replace("{n}",c.name); burst(70);
+  const out=$("#wheelOut");
+  out.innerHTML=`<div class="card winner"><div class="label">Das Rad sagt</div><div class="big">${c.em} ${esc(c.name)}</div>
+    ${c.note?`<p class="msg">${esc(c.note)}</p>`:""}<div id="winNear"></div>
+    <div class="row" style="justify-content:center;margin-top:10px"><button class="btn small" id="again">Nochmal drehen</button></div></div>`;
+  $("#again").onclick=()=>$("#spinBtn").click();
+  const slot=$("#winNear");
+  if(!await ensureLoc()){ slot.innerHTML=`<p class="msg">Wähle oben einen Startpunkt, dann zeige ich die nächste Filiale.</p>
+    <button class="btn small primary" id="retryWin">Filiale suchen</button>`; $("#retryWin").onclick=()=>onWinSearch(c); return }
+  onWinSearch(c);
+}
+async function onWinSearch(c){
+  const slot=$("#winNear"); let i=0;
+  try{
+    const [f]=await findNearest([c], state.radiusKm, 1, r=>slot.innerHTML=loadingHtml(r,i++));
+    if(f) slot.innerHTML=`<div style="text-align:left;margin-top:10px">${resultCard(f)}</div>`;
+    else { slot.innerHTML=`<p class="msg">Keine Filiale im Umkreis von ${fmtKm(state.radiusKm)}.</p>
+      ${state.radiusKm<500?`<button class="btn small primary" id="widenWin">Bis 500 km suchen</button>`:""}`;
+      const w=$("#widenWin"); if(w) w.onclick=()=>{state.radiusKm=500; save(); renderRadius(); onWinSearch(c)}; }
+  }catch(e){ slot.innerHTML=errHtml() }
+}
+
+/* ---------- Konfetti ---------- */
+function burst(count){
+  if(matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+  const cols=["--ketchup","--mustard","--teal","--grape","--sky"].map(css);
+  for(let i=0;i<count;i++){
+    const d=document.createElement("i"); d.className="confetti";
+    d.style.left=Math.random()*100+"vw"; d.style.background=cols[i%cols.length];
+    d.style.animationDuration=(1.6+Math.random()*1.6)+"s"; d.style.animationDelay=(Math.random()*.4)+"s";
+    d.style.borderRadius=Math.random()<.5?"50%":"2px";
+    document.body.appendChild(d); setTimeout(()=>d.remove(),4000);
+  }
+}
+
+/* ---------- Start ---------- */
+bindReset(); renderList(); renderRadius(); renderLoc(); setTab(state.tab||"list");
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change",drawWheel);
+document.fonts?.ready.then(drawWheel);
+</script>
+</body>
+</html>
